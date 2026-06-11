@@ -12,6 +12,7 @@ def get_connection():
 
 def init_db():
     conn = get_connection()
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS meetings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,6 +35,10 @@ def init_db():
             text TEXT NOT NULL
         )"""
     )
+    try:
+        conn.execute("ALTER TABLE action_items ADD COLUMN owner TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -81,10 +86,15 @@ def get_speakers_by_meeting(meeting_id):
 def save_action_items(meeting_id, items):
     conn = get_connection()
     conn.execute("DELETE FROM action_items WHERE meeting_id = ?", (meeting_id,))
-    for text in items:
+    for item in items:
+        if isinstance(item, str):
+            text, owner = item, "Unassigned"
+        else:
+            text = item["text"]
+            owner = item.get("owner", "Unassigned")
         conn.execute(
-            "INSERT INTO action_items (meeting_id, text) VALUES (?, ?)",
-            (meeting_id, text),
+            "INSERT INTO action_items (meeting_id, text, owner) VALUES (?, ?, ?)",
+            (meeting_id, text, owner),
         )
     conn.commit()
     conn.close()
@@ -93,7 +103,7 @@ def save_action_items(meeting_id, items):
 def get_action_items_by_meeting(meeting_id):
     conn = get_connection()
     rows = conn.execute(
-        "SELECT text FROM action_items WHERE meeting_id = ? ORDER BY id",
+        "SELECT text, owner FROM action_items WHERE meeting_id = ? ORDER BY id",
         (meeting_id,),
     ).fetchall()
     conn.close()

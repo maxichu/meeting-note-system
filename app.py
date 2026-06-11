@@ -1,5 +1,5 @@
 import streamlit as st
-from analyze import extract_speakers, extract_action_items
+from analyze import extract_speakers, extract_action_items, extract_action_items_with_owners
 from db import init_db, save_meeting, get_all_meetings, save_speakers, get_speakers_by_meeting, save_action_items, get_action_items_by_meeting
 
 st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="棣冩憫")
@@ -66,7 +66,7 @@ if st.button("Save Notes", type="primary"):
         meeting_id = save_meeting(text_to_save.strip())
         speaker_counts = extract_speakers(text_to_save.strip())
         save_speakers(meeting_id, speaker_counts)
-        action_items = extract_action_items(text_to_save.strip())
+        action_items = extract_action_items_with_owners(text_to_save.strip())
         save_action_items(meeting_id, action_items)
         st.success(f"Meeting notes saved successfully! (ID: {meeting_id})")
 
@@ -84,23 +84,15 @@ else:
             st.text(meeting['raw_text'])
 
             speakers = get_speakers_by_meeting(meeting['id'])
-            if not speakers:
-                counts = extract_speakers(meeting['raw_text'])
-                if counts:
-                    save_speakers(meeting['id'], counts)
-                    speakers = get_speakers_by_meeting(meeting['id'])
             if speakers:
                 st.markdown('**Speakers:**')
                 for s in speakers:
                     st.write(f"{s['name']} -> {s['statement_count']}")
 
             items = get_action_items_by_meeting(meeting['id'])
-            if not items:
-                extracted = extract_action_items(meeting['raw_text'])
-                if extracted:
-                    save_action_items(meeting['id'], extracted)
-                    items = get_action_items_by_meeting(meeting['id'])
             if items:
                 st.markdown('**Action Items:**')
                 for n, a in enumerate(items, 1):
+                    owner = a['owner'] if a['owner'] else 'Unassigned'
                     st.write(f"{n}. {a['text']}")
+                    st.write(f"   Owner: {owner}")
