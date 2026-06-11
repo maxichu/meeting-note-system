@@ -19,6 +19,14 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )"""
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS speakers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meeting_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            statement_count INTEGER NOT NULL
+        )"""
+    )
     conn.commit()
     conn.close()
 
@@ -36,6 +44,28 @@ def get_all_meetings():
     conn = get_connection()
     rows = conn.execute(
         "SELECT id, raw_text, created_at FROM meetings ORDER BY created_at DESC"
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def save_speakers(meeting_id, speaker_counts):
+    conn = get_connection()
+    conn.execute("DELETE FROM speakers WHERE meeting_id = ?", (meeting_id,))
+    for name, count in speaker_counts.items():
+        conn.execute(
+            "INSERT INTO speakers (meeting_id, name, statement_count) VALUES (?, ?, ?)",
+            (meeting_id, name, count),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_speakers_by_meeting(meeting_id):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT name, statement_count FROM speakers WHERE meeting_id = ? ORDER BY statement_count DESC",
+        (meeting_id,),
     ).fetchall()
     conn.close()
     return rows

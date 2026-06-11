@@ -1,5 +1,6 @@
 import streamlit as st
-from db import init_db, save_meeting, get_all_meetings
+from analyze import extract_speakers
+from db import init_db, save_meeting, get_all_meetings, save_speakers, get_speakers_by_meeting
 
 st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="棣冩憫")
 st.title("Meeting Intelligence Assistant")
@@ -63,6 +64,8 @@ if st.button("Save Notes", type="primary"):
         st.warning("Please enter or upload meeting notes before saving.")
     else:
         meeting_id = save_meeting(text_to_save.strip())
+        speaker_counts = extract_speakers(text_to_save.strip())
+        save_speakers(meeting_id, speaker_counts)
         st.success(f"Meeting notes saved successfully! (ID: {meeting_id})")
 
 
@@ -77,3 +80,14 @@ else:
     for meeting in meetings:
         with st.expander(f"Meeting #{meeting['id']} - {meeting['created_at']}"):
             st.text(meeting['raw_text'])
+
+            speakers = get_speakers_by_meeting(meeting['id'])
+            if not speakers:
+                counts = extract_speakers(meeting['raw_text'])
+                if counts:
+                    save_speakers(meeting['id'], counts)
+                    speakers = get_speakers_by_meeting(meeting['id'])
+            if speakers:
+                st.markdown('**Speakers:**')
+                for s in speakers:
+                    st.write(f"{s['name']} -> {s['statement_count']}")
