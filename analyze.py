@@ -137,3 +137,61 @@ def build_knowledge_graph(action_items_data):
     plt.close(fig)
     buf.seek(0)
     return buf.read(), G.number_of_nodes(), G.number_of_edges()
+
+
+def generate_summary(meeting_text, speakers, action_items):
+    try:
+        import llm as llm_module
+        prompt = _build_summary_prompt(meeting_text, speakers, action_items)
+        result = llm_module.generate_response(prompt)
+        if result:
+            return result
+    except Exception:
+        pass
+    return _rule_based_summary(meeting_text, speakers, action_items)
+
+
+def _build_summary_prompt(meeting_text, speakers, action_items):
+    return f"""You are a meeting analysis assistant. Analyze the following meeting notes and provide a structured summary.
+
+Meeting Notes:
+{meeting_text}
+
+Extracted Speakers: {speakers}
+Extracted Action Items: {action_items}
+
+Please provide:
+1. Key Discussion
+2. Decisions
+3. Risks
+4. Action Items"""
+
+
+def _rule_based_summary(meeting_text, speakers, action_items):
+    lines = []
+    lines.append("Key Discussion:")
+    if speakers:
+        names = ', '.join(speakers.keys())
+        lines.append(f"Speakers: {names}. Topics were discussed as reflected in the meeting notes.")
+    else:
+        lines.append("No specific speakers identified.")
+
+    lines.append("")
+    lines.append("Decisions:")
+    lines.append("None detected.")
+
+    lines.append("")
+    lines.append("Risks:")
+    lines.append("None detected.")
+
+    lines.append("")
+    lines.append("Action Items:")
+    if action_items:
+        for item in action_items:
+            owner = item.get('owner', 'Unassigned')
+            deadline = item.get('deadline', 'No deadline')
+            lines.append(f"- {item['text']} (Owner: {owner}, Deadline: {deadline})")
+    else:
+        lines.append("None detected.")
+
+    return '\n'.join(lines)

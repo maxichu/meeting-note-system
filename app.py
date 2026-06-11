@@ -1,6 +1,6 @@
 import json
 import streamlit as st
-from analyze import extract_speakers, extract_action_items, extract_action_items_with_owners, build_knowledge_graph
+from analyze import extract_speakers, extract_action_items, extract_action_items_with_owners, build_knowledge_graph, generate_summary
 from db import init_db, save_meeting, get_all_meetings, save_speakers, get_speakers_by_meeting, save_action_items, get_action_items_by_meeting, save_analysis, get_analysis_by_meeting
 
 st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="棣冩憫")
@@ -99,6 +99,16 @@ else:
                         st.write(f"   Owner: {owner}")
                         if a.get('deadline'):
                             st.write(f"   Deadline: {a['deadline']}")
+                if 'summary' in data:
+                    st.markdown('**Meeting Summary**')
+                    st.write(data['summary'])
+                else:
+                    if st.button('Generate Summary', key=f"gen_{meeting['id']}"):
+                        with st.spinner('Generating summary...'):
+                            summary = generate_summary(meeting['raw_text'], data.get('speakers', {}), data.get('action_items', []))
+                            data['summary'] = summary
+                            save_analysis(meeting['id'], data)
+                            st.rerun()
             else:
                 speakers = get_speakers_by_meeting(meeting['id'])
                 if speakers:
@@ -114,7 +124,6 @@ else:
                         st.write(f"   Owner: {owner}")
                         if a['deadline']:
                             st.write(f"   Deadline: {a['deadline']}")
-
 
 st.markdown("---")
 st.subheader("Knowledge Graph")
