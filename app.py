@@ -1,7 +1,7 @@
 import streamlit as st
-from db import init_db, save_meeting
+from db import init_db, save_meeting, get_all_meetings
 
-st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="📝")
+st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="棣冩憫")
 st.title("Meeting Intelligence Assistant")
 
 init_db()
@@ -64,3 +64,16 @@ if st.button("Save Notes", type="primary"):
     else:
         meeting_id = save_meeting(text_to_save.strip())
         st.success(f"Meeting notes saved successfully! (ID: {meeting_id})")
+
+
+
+st.markdown("---")
+st.subheader("Meeting History")
+
+meetings = get_all_meetings()
+if not meetings:
+    st.info("No meeting notes saved yet. Use the form above to add one.")
+else:
+    for meeting in meetings:
+        with st.expander(f"Meeting #{meeting['id']} - {meeting['created_at']}"):
+            st.text(meeting['raw_text'])

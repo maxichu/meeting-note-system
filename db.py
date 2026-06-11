@@ -30,3 +30,12 @@ def save_meeting(raw_text):
     conn.commit()
     conn.close()
     return meeting_id
+
+
+def get_all_meetings():
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id, raw_text, created_at FROM meetings ORDER BY created_at DESC"
+    ).fetchall()
+    conn.close()
+    return rows
