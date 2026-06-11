@@ -107,3 +107,33 @@ def _detect_deadline(text):
             c = re.sub(r'\s{2,}', ' ', c)
             return c or matched, matched
     return text, None
+
+
+def build_knowledge_graph(action_items_data):
+    import networkx as nx
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from io import BytesIO
+
+    G = nx.DiGraph()
+    for item in action_items_data:
+        owner = item.get('owner') or 'Unassigned'
+        text = item.get('text', '')
+        if owner != 'Unassigned' and text:
+            G.add_edge(owner, text)
+
+    if G.number_of_nodes() == 0:
+        return None, 0, 0
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    pos = nx.spring_layout(G, k=1.5, iterations=50)
+    nx.draw(G, pos, with_labels=True, node_color='lightblue',
+            node_size=2000, font_size=10, font_weight='bold',
+            arrows=True, arrowstyle='->', arrowsize=20,
+            edge_color='gray', ax=ax)
+    buf = BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read(), G.number_of_nodes(), G.number_of_edges()

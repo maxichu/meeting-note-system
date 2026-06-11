@@ -1,6 +1,6 @@
 import json
 import streamlit as st
-from analyze import extract_speakers, extract_action_items, extract_action_items_with_owners
+from analyze import extract_speakers, extract_action_items, extract_action_items_with_owners, build_knowledge_graph
 from db import init_db, save_meeting, get_all_meetings, save_speakers, get_speakers_by_meeting, save_action_items, get_action_items_by_meeting, save_analysis, get_analysis_by_meeting
 
 st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="棣冩憫")
@@ -114,3 +114,27 @@ else:
                         st.write(f"   Owner: {owner}")
                         if a['deadline']:
                             st.write(f"   Deadline: {a['deadline']}")
+
+
+st.markdown("---")
+st.subheader("Knowledge Graph")
+
+all_items = []
+for meeting in meetings:
+    stored = get_analysis_by_meeting(meeting["id"])
+    if stored:
+        data = json.loads(stored["content_json"])
+        for item in data.get("action_items", []):
+            all_items.append(item)
+    else:
+        for item in get_action_items_by_meeting(meeting["id"]):
+            all_items.append({"text": item["text"], "owner": item["owner"] if item["owner"] else "Unassigned"})
+
+if all_items:
+    img_bytes, n_nodes, n_edges = build_knowledge_graph(all_items)
+    if img_bytes:
+        st.image(img_bytes, caption=f"Nodes: {n_nodes} | Edges: {n_edges}")
+    else:
+        st.info("No valid edges to display from action items.")
+else:
+    st.info("No action items available to build knowledge graph.")
