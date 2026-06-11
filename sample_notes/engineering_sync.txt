@@ -1,0 +1,18 @@
+2026-06-10 Engineering Sync
+
+Alice:
+Search performance degraded after deployment. The query response time increased from 200ms to 2 seconds.
+
+Bob:
+Root cause may be missing database index on the customer_email column. I will investigate the query plan.
+
+Charlie:
+Action item: Create index on customer_email.
+Owner: Bob.
+Deadline: tomorrow.
+
+Alice:
+Also, we need to monitor the rollout. Let us check back on Friday.
+
+Bob:
+Agreed. I will draft the migration script today.
