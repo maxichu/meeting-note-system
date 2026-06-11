@@ -43,6 +43,14 @@ def init_db():
         conn.execute("ALTER TABLE action_items ADD COLUMN deadline TEXT")
     except sqlite3.OperationalError:
         pass
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meeting_id INTEGER NOT NULL,
+            content_json TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )"""
+    )
     conn.commit()
     conn.close()
 
@@ -113,3 +121,25 @@ def get_action_items_by_meeting(meeting_id):
     ).fetchall()
     conn.close()
     return rows
+
+
+def save_analysis(meeting_id, analysis_data):
+    import json
+    conn = get_connection()
+    conn.execute("DELETE FROM analyses WHERE meeting_id = ?", (meeting_id,))
+    conn.execute(
+        "INSERT INTO analyses (meeting_id, content_json) VALUES (?, ?)",
+        (meeting_id, json.dumps(analysis_data)),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_analysis_by_meeting(meeting_id):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT content_json FROM analyses WHERE meeting_id = ? ORDER BY created_at DESC LIMIT 1",
+        (meeting_id,),
+    ).fetchall()
+    conn.close()
+    return rows[0] if rows else None

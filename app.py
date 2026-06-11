@@ -1,6 +1,7 @@
+import json
 import streamlit as st
 from analyze import extract_speakers, extract_action_items, extract_action_items_with_owners
-from db import init_db, save_meeting, get_all_meetings, save_speakers, get_speakers_by_meeting, save_action_items, get_action_items_by_meeting
+from db import init_db, save_meeting, get_all_meetings, save_speakers, get_speakers_by_meeting, save_action_items, get_action_items_by_meeting, save_analysis, get_analysis_by_meeting
 
 st.set_page_config(page_title="Meeting Intelligence Assistant", page_icon="棣冩憫")
 st.title("Meeting Intelligence Assistant")
@@ -68,6 +69,8 @@ if st.button("Save Notes", type="primary"):
         save_speakers(meeting_id, speaker_counts)
         action_items = extract_action_items_with_owners(text_to_save.strip())
         save_action_items(meeting_id, action_items)
+        analysis_data = {"speakers": dict(speaker_counts), "action_items": action_items}
+        save_analysis(meeting_id, analysis_data)
         st.success(f"Meeting notes saved successfully! (ID: {meeting_id})")
 
 
@@ -81,20 +84,33 @@ if not meetings:
 else:
     for meeting in meetings:
         with st.expander(f"Meeting #{meeting['id']} - {meeting['created_at']}"):
-            st.text(meeting['raw_text'])
-
-            speakers = get_speakers_by_meeting(meeting['id'])
-            if speakers:
-                st.markdown('**Speakers:**')
-                for s in speakers:
-                    st.write(f"{s['name']} -> {s['statement_count']}")
-
-            items = get_action_items_by_meeting(meeting['id'])
-            if items:
-                st.markdown('**Action Items:**')
-                for n, a in enumerate(items, 1):
-                    owner = a['owner'] if a['owner'] else 'Unassigned'
-                    st.write(f"{n}. {a['text']}")
-                    st.write(f"   Owner: {owner}")
-                    if a['deadline']:
-                        st.write(f"   Deadline: {a['deadline']}")
+            stored = get_analysis_by_meeting(meeting['id'])
+            if stored:
+                data = json.loads(stored['content_json'])
+                if data.get('speakers'):
+                    st.markdown('**Speakers:**')
+                    for name, count in data['speakers'].items():
+                        st.write(f"{name} -> {count}")
+                if data.get('action_items'):
+                    st.markdown('**Action Items:**')
+                    for n, a in enumerate(data['action_items'], 1):
+                        owner = a.get('owner', 'Unassigned') or 'Unassigned'
+                        st.write(f"{n}. {a['text']}")
+                        st.write(f"   Owner: {owner}")
+                        if a.get('deadline'):
+                            st.write(f"   Deadline: {a['deadline']}")
+            else:
+                speakers = get_speakers_by_meeting(meeting['id'])
+                if speakers:
+                    st.markdown('**Speakers:**')
+                    for s in speakers:
+                        st.write(f"{s['name']} -> {s['statement_count']}")
+                items = get_action_items_by_meeting(meeting['id'])
+                if items:
+                    st.markdown('**Action Items:**')
+                    for n, a in enumerate(items, 1):
+                        owner = a['owner'] if a['owner'] else 'Unassigned'
+                        st.write(f"{n}. {a['text']}")
+                        st.write(f"   Owner: {owner}")
+                        if a['deadline']:
+                            st.write(f"   Deadline: {a['deadline']}")
