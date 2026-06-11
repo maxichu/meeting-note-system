@@ -77,6 +77,33 @@ def extract_action_items_with_owners(raw_text):
                             break
                 if not owner:
                     owner = "Unassigned"
-                items.append({'text': content, 'owner': owner})
+                cleaned, deadline = _detect_deadline(content)
+                items.append({'text': cleaned, 'owner': owner, 'deadline': deadline})
         i += 1
     return items
+
+
+def _detect_deadline(text):
+    if not text:
+        return text, None
+    m = re.search(r'\b(\d{4}[-/]\d{2}[-/]\d{2})\b', text)
+    if m:
+        dl = m.group(1)
+        c = re.sub(r'\s*(?:by|before|until)?\s*' + re.escape(dl), '', text, flags=re.IGNORECASE).strip()
+        c = re.sub(r'\s{2,}', ' ', c)
+        return c or dl, dl
+    kws = ['next week', 'next month', 'tomorrow',
+           'next monday', 'next tuesday', 'next wednesday', 'next thursday',
+           'next friday', 'next saturday', 'next sunday',
+           'monday', 'tuesday', 'wednesday', 'thursday',
+           'friday', 'saturday', 'sunday']
+    kws.sort(key=len, reverse=True)
+    tl = text.lower()
+    for kw in kws:
+        m = re.search(r'\b' + re.escape(kw) + r'\b', tl)
+        if m:
+            matched = text[m.start():m.end()]
+            c = re.sub(r'\s*(?:by|before|until)?\s*' + re.escape(matched), '', text, flags=re.IGNORECASE).strip()
+            c = re.sub(r'\s{2,}', ' ', c)
+            return c or matched, matched
+    return text, None

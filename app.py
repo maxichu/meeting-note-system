@@ -96,3 +96,5 @@ else:
                     owner = a['owner'] if a['owner'] else 'Unassigned'
                     st.write(f"{n}. {a['text']}")
                     st.write(f"   Owner: {owner}")
+                    if a['deadline']:
+                        st.write(f"   Deadline: {a['deadline']}")

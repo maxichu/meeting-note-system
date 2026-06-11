@@ -39,6 +39,10 @@ def init_db():
         conn.execute("ALTER TABLE action_items ADD COLUMN owner TEXT")
     except sqlite3.OperationalError:
         pass
+    try:
+        conn.execute("ALTER TABLE action_items ADD COLUMN deadline TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -88,13 +92,14 @@ def save_action_items(meeting_id, items):
     conn.execute("DELETE FROM action_items WHERE meeting_id = ?", (meeting_id,))
     for item in items:
         if isinstance(item, str):
-            text, owner = item, "Unassigned"
+            text, owner, deadline = item, "Unassigned", None
         else:
             text = item["text"]
             owner = item.get("owner", "Unassigned")
+            deadline = item.get("deadline", None)
         conn.execute(
-            "INSERT INTO action_items (meeting_id, text, owner) VALUES (?, ?, ?)",
-            (meeting_id, text, owner),
+            "INSERT INTO action_items (meeting_id, text, owner, deadline) VALUES (?, ?, ?, ?)",
+            (meeting_id, text, owner, deadline),
         )
     conn.commit()
     conn.close()
@@ -103,7 +108,7 @@ def save_action_items(meeting_id, items):
 def get_action_items_by_meeting(meeting_id):
     conn = get_connection()
     rows = conn.execute(
-        "SELECT text, owner FROM action_items WHERE meeting_id = ? ORDER BY id",
+        "SELECT text, owner, deadline FROM action_items WHERE meeting_id = ? ORDER BY id",
         (meeting_id,),
     ).fetchall()
     conn.close()
