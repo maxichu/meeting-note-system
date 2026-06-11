@@ -27,6 +27,13 @@ def init_db():
             statement_count INTEGER NOT NULL
         )"""
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS action_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meeting_id INTEGER NOT NULL,
+            text TEXT NOT NULL
+        )"""
+    )
     conn.commit()
     conn.close()
 
@@ -65,6 +72,28 @@ def get_speakers_by_meeting(meeting_id):
     conn = get_connection()
     rows = conn.execute(
         "SELECT name, statement_count FROM speakers WHERE meeting_id = ? ORDER BY statement_count DESC",
+        (meeting_id,),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def save_action_items(meeting_id, items):
+    conn = get_connection()
+    conn.execute("DELETE FROM action_items WHERE meeting_id = ?", (meeting_id,))
+    for text in items:
+        conn.execute(
+            "INSERT INTO action_items (meeting_id, text) VALUES (?, ?)",
+            (meeting_id, text),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_action_items_by_meeting(meeting_id):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT text FROM action_items WHERE meeting_id = ? ORDER BY id",
         (meeting_id,),
     ).fetchall()
     conn.close()
